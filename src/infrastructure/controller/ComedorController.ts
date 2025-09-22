@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ComedorEntity } from '../entities/ComedorEntity';
 import { ComedorApplicationService } from '../../application/ComedorApplicationService';
 import { Comedor } from '../../domain/Comedor';
+import { AuthRequest } from '../middleware/auth';
 
 export class ComedorController {
   private app: ComedorApplicationService;
@@ -37,10 +38,15 @@ export class ComedorController {
     }
   }
 
-  async create(req: Request, res: Response): Promise<Response> {
-    const { nombre, direccion, horarios, latitud, longitud, creado_por } = req.body;
-    if (!nombre || !direccion || !creado_por) {
-      return res.status(400).json({ message: 'Faltan campos requeridos: nombre, direccion, creado_por' });
+  async create(req: AuthRequest, res: Response): Promise<Response> {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+
+    const { nombre, direccion, horarios, latitud, longitud } = req.body;
+    if (!nombre || !direccion) {
+      return res.status(400).json({ message: 'Faltan campos requeridos: nombre y direccion' });
     }
     try {
       const comedor: Omit<Comedor, 'id'> = {
@@ -49,7 +55,7 @@ export class ComedorController {
         horarios: horarios ? String(horarios).trim() : undefined,
         latitud: latitud !== undefined ? Number(latitud) : undefined,
         longitud: longitud !== undefined ? Number(longitud) : undefined,
-        creado_por: Number(creado_por)
+        creado_por: user.sub // Asignar el ID del usuario autenticado
       };
       const created = await this.app.create(comedor);
       return res.status(201).json(created);

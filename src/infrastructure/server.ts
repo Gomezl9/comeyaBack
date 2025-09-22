@@ -17,6 +17,7 @@ import inventarioRoutes from "./routes/InventarioRoutes";
 import comedorServicioRoutes from "./routes/ComedorServicioRoutes";
 import donaciondineroRoutes from "./routes/DonacionDineroRoutes";
 import donacioninventarioRoutes from "./routes/DonacionInventarioRoutes";
+import statsRoutes from "./routes/StatsRoutes";
 
 connectDB()
   .then(() => {
@@ -29,6 +30,7 @@ connectDB()
     app.use("/api", comedorServicioRoutes);
     app.use("/api", donaciondineroRoutes);
     app.use("/api", donacioninventarioRoutes);
+    app.use("/api", statsRoutes);
 
     app.get("/", (req, res) => {
       res.send("API funcionando con arquitectura hexagonal");

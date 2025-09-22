@@ -5,6 +5,8 @@ import { Request, Response } from 'express-serve-static-core';
 import { ParsedQs } from 'qs';
 
 export class ComedorAdpartes {
+    private comedorRepository = AppDataSource.getRepository(ComedorEntity);
+
     registerComedor(req: Request<{}, any, any, ParsedQs, Record<string, any>>, res: Response<any, Record<string, any>, number>) {
         throw new Error('Method not implemented.');
     }
@@ -55,5 +57,17 @@ export class ComedorAdpartes {
         const repo = AppDataSource.getRepository(ComedorEntity);
         const result = await repo.delete(id);
         return !!result.affected && result.affected > 0;
+    }
+
+    async findByCreator(creatorId: number): Promise<ComedorEntity[]> {
+        return this.comedorRepository.find({ where: { creado_por: creatorId } });
+    }
+
+    async countAll(): Promise<number> {
+        return this.comedorRepository.count();
+    }
+
+    async countActivos(): Promise<number> {
+        return this.comedorRepository.count({ where: { activo: true } });
     }
 }

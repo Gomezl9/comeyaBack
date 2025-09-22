@@ -1,6 +1,7 @@
 import { AppDataSource } from '../config/data-base';
 import { DonacionDinero } from "../../domain/DonacionDinero";
 import { DonacionDineroEntity } from "../entities/DonacionDineroEntity";
+import { MoreThanOrEqual } from 'typeorm';
 
 export class DonacionDineroAdpartes {
     private toDomain(donaciondinero: DonacionDineroEntity): DonacionDinero {
@@ -13,34 +14,60 @@ export class DonacionDineroAdpartes {
         };
     }
 
+    private repo = AppDataSource.getRepository(DonacionDineroEntity);
+
+    private 일주일_전(): Date {
+        const date = new Date();
+        date.setDate(date.getDate() - 7);
+        return date;
+    }
+
     async createDonacionDinero(donaciondinero: Omit<DonacionDinero, "id">): Promise<number> {
-    const repo = AppDataSource.getRepository(DonacionDineroEntity);
-        const newDonacionDinero = repo.create(donaciondinero);
-        await repo.save(newDonacionDinero);
+        const newDonacionDinero = this.repo.create(donaciondinero);
+        await this.repo.save(newDonacionDinero);
         return newDonacionDinero.id;
     }
 
     async getDonacionDineroById(id: number): Promise<DonacionDinero | null> {
-    const repo = AppDataSource.getRepository(DonacionDineroEntity);
-        const donaciondinero = await repo.findOneBy({ id });
+        const donaciondinero = await this.repo.findOneBy({ id });
         return donaciondinero ? this.toDomain(donaciondinero) : null;
     }
 
     async getAllDonacionDinero(): Promise<DonacionDinero[]> {
-    const repo = AppDataSource.getRepository(DonacionDineroEntity);
-        const donaciondineros = await repo.find();
+        const donaciondineros = await this.repo.find();
         return donaciondineros.map(u => this.toDomain(u));
     }
 
     async updateDonacionDinero(id: number, donaciondinero: Partial<DonacionDinero>): Promise<boolean> {
-    const repo = AppDataSource.getRepository(DonacionDineroEntity);
-        const result = await repo.update(id, donaciondinero);
+        const result = await this.repo.update(id, donaciondinero);
         return result.affected !== undefined && result.affected > 0;
     }
 
     async deleteDonacionDinero(id: number): Promise<boolean> {
-    const repo = AppDataSource.getRepository(DonacionDineroEntity);
-        const result = await repo.delete(id);
+        const result = await this.repo.delete(id);
         return !!result.affected && result.affected > 0;
+    }
+
+    async countByUser(userId: number): Promise<number> {
+        return this.repo.count({ where: { usuario_id: userId } });
+    }
+
+    async countRecentByUser(userId: number): Promise<number> {
+        return this.repo.count({ where: { usuario_id: userId, fecha: MoreThanOrEqual(this.일주일_전()) } });
+    }
+
+    async countByComedores(comedorIds: number[]): Promise<number> {
+        if (comedorIds.length === 0) return 0;
+        return this.repo.createQueryBuilder("donacion")
+            .where("donacion.comedor_id IN (:...comedorIds)", { comedorIds })
+            .getCount();
+    }
+
+    async countRecentByComedores(comedorIds: number[]): Promise<number> {
+        if (comedorIds.length === 0) return 0;
+        return this.repo.createQueryBuilder("donacion")
+            .where("donacion.comedor_id IN (:...comedorIds)", { comedorIds })
+            .andWhere("donacion.fecha >= :date", { date: this.일주일_전() })
+            .getCount();
     }
 }
