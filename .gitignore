@@ -22,11 +22,6 @@ build/
 out/
 coverage/
 
-# Archivos de entorno
-.env
-.env.local
-.env.*.local
-
 # Configuración IDE/editors
 .vscode/
 .idea/
