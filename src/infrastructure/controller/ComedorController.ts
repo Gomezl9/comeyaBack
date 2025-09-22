@@ -65,13 +65,27 @@ export class ComedorController {
     }
   }
 
-  async update(req: Request, res: Response): Promise<Response> {
+  async update(req: AuthRequest, res: Response): Promise<Response> {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+
     const id = parseInt(req.params.id);
     const { nombre, direccion, horarios, latitud, longitud } = req.body;
     if (isNaN(id)) {
       return res.status(400).json({ message: 'ID no válido' });
     }
     try {
+      const comedor = await this.app.getById(id);
+      if (!comedor) {
+        return res.status(404).json({ message: 'Comedor no encontrado' });
+      }
+
+      if (comedor.creado_por !== user.sub) {
+        return res.status(403).json({ message: 'No tienes permiso para editar este comedor' });
+      }
+
       const updated = await this.app.update(id, {
         nombre: nombre !== undefined ? String(nombre).trim() : undefined,
         direccion: direccion !== undefined ? String(direccion).trim() : undefined,
@@ -79,9 +93,7 @@ export class ComedorController {
         latitud: latitud !== undefined ? Number(latitud) : undefined,
         longitud: longitud !== undefined ? Number(longitud) : undefined
       });
-      if (!updated) {
-        return res.status(404).json({ message: 'Comedor no encontrado' });
-      }
+
       return res.status(200).json(updated);
     } catch (error) {
       console.error('Error en update ComedorController:', error);
@@ -89,12 +101,26 @@ export class ComedorController {
     }
   }
 
-  async delete(req: Request, res: Response): Promise<Response> {
+  async delete(req: AuthRequest, res: Response): Promise<Response> {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: 'ID no válido' });
     }
     try {
+      const comedor = await this.app.getById(id);
+      if (!comedor) {
+        return res.status(404).json({ message: 'Comedor no encontrado' });
+      }
+
+      if (comedor.creado_por !== user.sub) {
+        return res.status(403).json({ message: 'No tienes permiso para eliminar este comedor' });
+      }
+
       const deleted = await this.app.delete(id);
       if (!deleted) {
         return res.status(404).json({ message: 'Comedor no encontrado' });
