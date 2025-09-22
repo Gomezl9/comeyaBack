@@ -14,6 +14,9 @@ export class DonacionInventarioEntity {
     @Column({ type: "int" })
     inventario_id!: number;
 
+    @Column({ type: "int" })
+    cantidad!: number;
+
     @Column({ type: "timestamp" })
     fecha!: Date;
 }

@@ -4,12 +4,16 @@ import { Request, Response } from "express";
 
 import { DonacionInventarioAdpartes } from "../adapter/DonacionInventarioAdapter";
 import { DonacionInventario } from "../../domain/DonacionInventario";
+import { InventarioAdpartes } from "../adapter/InventarioAdapter";
+import { Inventario } from "../../domain/Inventario";
 
 export class DonacionInventarioController {
     private adapter: DonacionInventarioAdpartes;
+    private inventarioAdapter: InventarioAdpartes;
 
     constructor(adapter: DonacionInventarioAdpartes) {
         this.adapter = adapter;
+        this.inventarioAdapter = new InventarioAdpartes();
     }
 
     async getAllDonacionesInventario(req: Request, res: Response): Promise<Response> {
@@ -41,16 +45,39 @@ export class DonacionInventarioController {
 
     async createDonacionInventario(req: Request, res: Response): Promise<Response> {
         try {
-            const { usuario_id, inventario_id, fecha } = req.body;
-            if (!usuario_id || !inventario_id || !fecha) {
+            const { usuario_id, inventario_id, comedor_id, cantidad, fecha, descripcion, unidad } = req.body;
+            
+            if (!usuario_id || !cantidad || !fecha) {
                 return res.status(400).json({ message: "Faltan campos requeridos" });
             }
-            // Asignación manual de propiedades
+
+            let finalInventarioId = inventario_id;
+
+            // Si no hay inventario_id, crear uno nuevo con comedor_id
+            if (!finalInventarioId && comedor_id) {
+                // Crear inventario con los datos de la donación
+                const inventarioData: Omit<Inventario, "id"> = {
+                    nombre: descripcion || 'Donación de alimentos',
+                    cantidad: Number(cantidad),
+                    unidad: unidad || 'unidades',
+                    comedor_id: Number(comedor_id)
+                };
+                
+                finalInventarioId = await this.inventarioAdapter.createInventario(inventarioData);
+            }
+            
+            if (!finalInventarioId) {
+                return res.status(400).json({ message: "No se pudo crear o encontrar inventario" });
+            }
+            
+            // Crear la donación con el inventario_id
             const donacion: Omit<DonacionInventario, "id"> = {
                 usuario_id: Number(usuario_id),
-                inventario_id: Number(inventario_id),
+                inventario_id: Number(finalInventarioId),
+                cantidad: Number(cantidad),
                 fecha: new Date(fecha)
             };
+            
             const id = await this.adapter.createDonacionInventario(donacion);
             const created = await this.adapter.getDonacionInventarioById(id);
             return res.status(201).json(created);

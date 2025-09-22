@@ -8,6 +8,7 @@ export class DonacionInventarioAdpartes {
             id: donacioninventario.id,
             usuario_id: donacioninventario.usuario_id,
             inventario_id: donacioninventario.inventario_id,
+            cantidad: donacioninventario.cantidad,
             fecha: donacioninventario.fecha
         };
     }
