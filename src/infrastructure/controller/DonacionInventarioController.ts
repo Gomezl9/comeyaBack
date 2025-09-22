@@ -47,43 +47,41 @@ export class DonacionInventarioController {
         try {
             const { usuario_id, inventario_id, comedor_id, cantidad, fecha, descripcion, unidad } = req.body;
             
-            if (!usuario_id || !cantidad || !fecha) {
-                return res.status(400).json({ message: "Faltan campos requeridos" });
+            if (!usuario_id || !cantidad || !fecha || !comedor_id) {
+                return res.status(400).json({ message: "Faltan campos requeridos: usuario_id, cantidad, fecha y comedor_id son obligatorios." });
             }
 
             let finalInventarioId = inventario_id;
 
-            // Si no hay inventario_id, crear uno nuevo con comedor_id
-            if (!finalInventarioId && comedor_id) {
-                // Crear inventario con los datos de la donación
-                const inventarioData: Omit<Inventario, "id"> = {
-                    nombre: descripcion || 'Donación de alimentos',
-                    cantidad: Number(cantidad),
-                    unidad: unidad || 'unidades',
-                    comedor_id: Number(comedor_id)
-                };
-                
-                finalInventarioId = await this.inventarioAdapter.createInventario(inventarioData);
-            }
+            // Si no se proporciona un inventario_id, asumimos una donación genérica a un comedor.
+            // Opcional: Podrías crear un inventario "genérico" por comedor si no existe.
+            // Por simplicidad, aquí podrías requerir que el inventario ya exista o manejarlo de otra forma.
+            // De momento, vamos a asumir que el inventario se crea por separado.
             
+            // Si no hay un ID de inventario, busquemos uno genérico o creemoslo
             if (!finalInventarioId) {
-                return res.status(400).json({ message: "No se pudo crear o encontrar inventario" });
+                let inventario = await this.inventarioAdapter.findOrCreateGeneric(comedor_id, descripcion, unidad);
+                finalInventarioId = inventario.id;
             }
             
-            // Crear la donación con el inventario_id
-            const donacion: Omit<DonacionInventario, "id"> = {
+            // Crear la donación sin 'id'
+            const donacionData: Omit<DonacionInventario, "id"> = {
                 usuario_id: Number(usuario_id),
                 inventario_id: Number(finalInventarioId),
                 cantidad: Number(cantidad),
                 fecha: new Date(fecha)
             };
             
-            const id = await this.adapter.createDonacionInventario(donacion);
-            const created = await this.adapter.getDonacionInventarioById(id);
-            return res.status(201).json(created);
+            const id = await this.adapter.createDonacionInventario(donacionData);
+            const createdDonacion = await this.adapter.getDonacionInventarioById(id);
+            
+            // Opcional: Actualizar la cantidad en el inventario
+            await this.inventarioAdapter.incrementarCantidad(finalInventarioId, Number(cantidad));
+            
+            return res.status(201).json(createdDonacion);
         } catch (error) {
-            console.error(error);
-            return res.status(500).json({ message: "Error en servidor" });
+            console.error("Error al crear donación de inventario:", error);
+            return res.status(500).json({ message: "Error en el servidor al crear la donación." });
         }
     }
 

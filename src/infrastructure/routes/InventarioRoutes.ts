@@ -1,11 +1,15 @@
 import { Router } from 'express';
 import { InventarioAdpartes } from "../adapter/InventarioAdapter";
 import { InventarioController } from '../controller/InventarioController';
+import { verifyToken, requireRole } from '../middleware/auth';
 
 const router = Router();
 const inventarioAdpartes = new InventarioAdpartes();
 const inventarioController = new InventarioController(inventarioAdpartes);
 
+
+// Proteger todas las rutas de inventario
+router.use("/inventarios", verifyToken, requireRole([1]));
 
 // Obtener todas las reservas
 router.get("/inventarios", (req, res) => inventarioController.getAllInventarios(req, res));

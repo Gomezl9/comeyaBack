@@ -78,23 +78,50 @@ export class UserController {
     // Login y emisión de JWT
     async login(request: Request, response: Response): Promise<Response> {
         const { correo, contraseña } = request.body;
+        console.log(`\n--- [LOGIN ATTEMPT] ---`);
+        console.log(`Correo recibido: ${correo}`);
+
         if (!correo || !contraseña) {
+            console.log("[LOGIN FAILED] Correo o contraseña no proporcionados.");
             return response.status(400).json({ message: "Correo y contraseña son requeridos" });
         }
         try {
             const user = await this.app.getUserByEmail(correo);
-            if (!user || !user.isActive()) { // LÓGICA DE NEGOCIO APLICADA AQUÍ
-                return response.status(401).json({ message: "Credenciales inválidas o usuario inactivo" });
-            }
-            const isValid = await bcrypt.compare(contraseña, user.contraseña);
-            if (!isValid) {
+
+            if (!user) {
+                console.log(`[LOGIN FAILED] Usuario no encontrado para el correo: ${correo}`);
                 return response.status(401).json({ message: "Credenciales inválidas" });
             }
-            const token = jwt.sign({ sub: user.id, rol_id: user.rol_id, correo: user.correo }, envs.JWT_SECRET, { expiresIn: "8h" });
-            // Incluir el usuario con su id en la respuesta
-            return response.status(200).json({ token, user: { id: user.id, nombre: user.nombre, correo: user.correo, rol_id: user.rol_id } });
+            
+            console.log(`[LOGIN STEP] Usuario encontrado:`, { id: user.id, nombre: user.nombre, status: user.status });
+
+            if (user.status !== true) {
+                console.log(`[LOGIN FAILED] El usuario ${user.nombre} está inactivo (status: ${user.status}).`);
+                return response.status(401).json({ message: "Usuario inactivo" });
+            }
+
+            console.log(`[LOGIN STEP] Verificando contraseña para el usuario: ${user.nombre}`);
+            const isValid = await bcrypt.compare(contraseña, user.contraseña);
+
+            if (!isValid) {
+                console.log(`[LOGIN FAILED] La contraseña es incorrecta para el usuario: ${user.nombre}`);
+                return response.status(401).json({ message: "Credenciales inválidas" });
+            }
+
+            console.log(`[LOGIN SUCCESS] Contraseña válida. Generando token para: ${user.nombre}`);
+            const token = jwt.sign(
+                { sub: user.id, rol_id: user.rol_id, correo: user.correo },
+                envs.JWT_SECRET,
+                { expiresIn: "8h" }
+            );
+            
+            return response.status(200).json({ 
+                token, 
+                user: { id: user.id, nombre: user.nombre, correo: user.correo, rol_id: user.rol_id } 
+            });
         } catch (error) {
-            return response.status(500).json({ message: "Error en servidor" });
+            console.error("[LOGIN ERROR] Ocurrió un error inesperado en el servidor:", error);
+            return response.status(500).json({ message: "Error en el servidor" });
         }
     }
 

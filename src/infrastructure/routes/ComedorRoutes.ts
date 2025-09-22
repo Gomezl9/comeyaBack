@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ComedorAdpartes } from "../adapter/ComedorAdapter";
 import { ComedorApplicationService } from "../../application/ComedorApplicationService";
 import { ComedorController } from '../controller/ComedorController';
+import { verifyToken, requireRole } from '../middleware/auth';
 
 const router = Router();
 const comedorAdpartes = new ComedorAdpartes();
@@ -27,7 +28,7 @@ router.get("/comedores/:id", async (req, res) => {
 });
 
 // Crear comedor
-router.post("/comedores", async (req, res) => {
+router.post("/comedores", verifyToken, requireRole([1]), async (req, res) => {
     try {
         await comedorController.create(req, res);
     } catch (error) {
@@ -36,7 +37,7 @@ router.post("/comedores", async (req, res) => {
 });
 
 // Actualizar comedor
-router.put("/comedores/:id", async (req, res) => {
+router.put("/comedores/:id", verifyToken, requireRole([1]), async (req, res) => {
     try {
         await comedorController.update(req, res);
     } catch (error) {
@@ -45,7 +46,7 @@ router.put("/comedores/:id", async (req, res) => {
 });
 
 // Eliminar comedor
-router.delete("/comedores/:id", async (req, res) => {
+router.delete("/comedores/:id", verifyToken, requireRole([1]), async (req, res) => {
     try {
         await comedorController.delete(req, res);
     } catch (error) {

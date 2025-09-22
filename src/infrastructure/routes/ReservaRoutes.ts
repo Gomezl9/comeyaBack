@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { ReservaAdpartes } from "../adapter/ReservaAdapter";
 import { ReservaController } from '../controller/ReservaController';
+import { verifyToken, requireRole } from '../middleware/auth';
 
 const router = Router();
 const reservaAdpartes = new ReservaAdpartes();
@@ -17,7 +18,7 @@ router.get("/reservas/:id", (req, res) => reservaController.getReservaById(req, 
 router.post("/reservas", (req, res) => reservaController.createReserva(req, res));
 
 // Actualizar reserva
-router.put("/reservas/:id", (req, res) => reservaController.updateReserva(req, res));
+router.put("/reservas/:id", verifyToken, requireRole([1]), (req, res) => reservaController.updateReserva(req, res));
 
 // Eliminar reserva
 router.delete("/reservas/:id", (req, res) => reservaController.deleteReserva(req, res));

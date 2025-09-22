@@ -18,7 +18,7 @@ export class UserAdpartes {
     }
 
     async createUser(user: { nombre: string, correo: string, contraseña: string, rol_id: number }): Promise<number> {
-        const newUser = this.userRepository.create(user);
+        const newUser = this.userRepository.create({ ...user, status: true });
         const result = await this.userRepository.save(newUser);
         return result.id;
     }

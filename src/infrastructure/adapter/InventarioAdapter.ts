@@ -13,6 +13,31 @@ export class InventarioAdpartes {
         };
     }
 
+    async findOrCreateGeneric(comedor_id: number, descripcion: string | null, unidad: string | null): Promise<Inventario> {
+        const repo = AppDataSource.getRepository(InventarioEntity);
+        const nombreGenerico = descripcion || 'Donación de Alimentos';
+        
+        let inventario = await repo.findOne({ where: { comedor_id, nombre: nombreGenerico } });
+
+        if (!inventario) {
+            const inventarioData = {
+                nombre: nombreGenerico,
+                cantidad: 0, // Inicia en 0, se incrementará con la donación
+                unidad: unidad || 'unidades',
+                comedor_id: comedor_id
+            };
+            const newInventario = repo.create(inventarioData);
+            inventario = await repo.save(newInventario);
+        }
+        
+        return inventario;
+    }
+
+    async incrementarCantidad(id: number, cantidad: number): Promise<void> {
+        const repo = AppDataSource.getRepository(InventarioEntity);
+        await repo.increment({ id }, "cantidad", cantidad);
+    }
+
     async createInventario(inventario: Omit<Inventario, "id">): Promise<number> {
         const repo = AppDataSource.getRepository(InventarioEntity);
         // Asegurarse de que comedor_id se incluya
